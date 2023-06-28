@@ -7,3 +7,4 @@
 > - Draw on the canvas
 > - Shift key to draw straight lines
 > - press d to delete
+> - select options from tools to set color of stroke and thickness of line
