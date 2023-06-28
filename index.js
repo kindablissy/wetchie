@@ -1,4 +1,13 @@
 const ROOT = document.getElementById("root");
+const drawingbox = document.getElementById("canvas");
+drawingbox.style.backgroundColor = "powderblue";
+var recorded_mousePos = { old: { x: 0, y: 0 } };
+var drawing = false;
+var currentContext = null;
+var pkeys = {
+  shiftDown: false,
+  d: true,
+};
 
 const Element = (style, tag = "div") => {
   const element = document.createElement(tag);
@@ -21,14 +30,6 @@ const DrawingBox = (style) => {
   return element;
 };
 
-const drawingbox = document.getElementById("canvas");
-drawingbox.style.backgroundColor = "powderblue";
-ROOT.appendChild(drawingbox);
-
-var recorded_mousePos = {};
-recorded_mousePos = { old: { x: 0, y: 0 } };
-var drawing = false;
-
 const createContext = (element, position) => {
   const ctx = element.getContext("2d");
   ctx.beginPath();
@@ -36,45 +37,69 @@ const createContext = (element, position) => {
   return ctx;
 };
 
-var currentContext = null;
-
 const sketch = (ctx, e) => {
   if (!drawing) return;
-  const x = e.offsetX;
-  const y = e.offsetY;
+  let x = e.offsetX;
+  let y = e.offsetY;
   if (
-    true ||
     (recorded_mousePos.old.x - x) * (recorded_mousePos.old.x - x) +
-      (recorded_mousePos.old.y - y) * (recorded_mousePos.old.y - y) <
-      100
+      (recorded_mousePos.old.y - y) * (recorded_mousePos.old.y - y) >
+    100
   ) {
-    console.log(x);
-    ctx.moveTo(recorded_mousePos.old.x, recorded_mousePos.old.y);
+    if (pkeys.shiftDown) {
+      const offsetx = recorded_mousePos.old.x - x;
+      const offsety = recorded_mousePos.old.y - y;
+      if (
+        pkeys.d == "h" ||
+        (!pkeys.d && offsetx * offsetx > offsety * offsety)
+      ) {
+        console.log("X here!");
+        pkeys.d = "h";
+        y = recorded_mousePos.old.y;
+      } else {
+        console.log("Y");
+        x = recorded_mousePos.old.x;
+        pkeys.d = "v";
+      }
+    }
     ctx.lineTo(x, y);
     ctx.stroke();
-    ctx.closePath();
     recorded_mousePos.old = {
-      x: e.offsetX,
-      y: e.offsetY,
+      x: x,
+      y: y,
     };
   }
 };
+
+window.addEventListener("keydown", (e) => {
+  if (e.code == "ShifRight" || "ShiftLeft") {
+    if (!pkeys.shiftDown) pkeys.shiftDown = true;
+  }
+});
+
+window.addEventListener("keyup", (e) => {
+  if (e.code == "ShifRight" || "ShiftLeft") {
+    if (pkeys.shiftDown) {
+      pkeys.shiftDown = false;
+      pkeys.d = false;
+    }
+  }
+});
 
 drawingbox.onmousedown = (e) => {
   if (drawing) return;
   else drawing = !drawing;
   currentContext = createContext(drawingbox, {
-    x: MouseEvent.offsetX,
-    y: MouseEvent.offsetY,
+    x: e.offsetX,
+    y: e.offsetY,
   });
   recorded_mousePos.old = {
-    x: MouseEvent.offsetX,
-    y: MouseEvent.offsetY,
+    x: e.offsetX,
+    y: e.offsetY,
   };
-  console.log("clicked");
 };
 
-drawingbox.onmouseup = () => {
+window.onmouseup = () => {
   if (!drawing) return;
   drawing = false;
   recorded_mousePos = { old: { x: 0, y: 0 } };
