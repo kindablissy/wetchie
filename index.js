@@ -1,6 +1,6 @@
 const ROOT = document.getElementById("root");
 const drawingbox = document.getElementById("canvas");
-drawingbox.style.backgroundColor = "powderblue";
+drawingbox.style.backgroundColor = "white";
 var recorded_mousePos = { old: { x: 0, y: 0 } };
 var drawing = false;
 var currentContext = null;
@@ -8,6 +8,33 @@ var pkeys = {
   shiftDown: false,
   d: true,
 };
+var currentLineWidth = 1;
+var currentColor = "rgb(0,0,0)";
+
+document
+  .getElementById("rangeRed")
+  .addEventListener("input", (e) => changeColor(e));
+
+document.getElementById("linewidthRange").addEventListener("input", (e) => {
+  currentLineWidth = e.target.value;
+  document.getElementById("currentlinespan").innerText = currentLineWidth;
+});
+document
+  .getElementById("rangeGreen")
+  .addEventListener("input", (e) => changeColor(e));
+document
+  .getElementById("rangeBlue")
+  .addEventListener("input", (e) => changeColor(e));
+
+function changeColor() {
+  ///Assigning variables for the primary colors
+  var red = document.getElementById("rangeRed").value;
+  var green = document.getElementById("rangeGreen").value;
+  var blue = document.getElementById("rangeBlue").value;
+  currentColor = "RGB(" + red + "," + green + "," + blue + ")";
+  document.getElementById("colorshow").style.backgroundColor = currentColor;
+  document.getElementById("choosecolor").style.color = currentColor;
+}
 
 const Element = (style, tag = "div") => {
   const element = document.createElement(tag);
@@ -37,7 +64,7 @@ const createContext = (element, position) => {
   return ctx;
 };
 
-const sketch = (ctx, e) => {
+const sketch = (ctx, e, color = "rgb(0,0,0)") => {
   if (!drawing) return;
   let x = e.offsetX;
   let y = e.offsetY;
@@ -45,7 +72,7 @@ const sketch = (ctx, e) => {
     (recorded_mousePos.old.x - x) * (recorded_mousePos.old.x - x) +
       (recorded_mousePos.old.y - y) * (recorded_mousePos.old.y - y) >
     // to have higher range for shift key to detect the direction more accurately
-    (pkeys.shiftDown && !pkeys.d ? 1000 : 100)
+    (pkeys.shiftDown && !pkeys.d ? 1000 : 0)
   ) {
     if (pkeys.shiftDown) {
       const offsetx = recorded_mousePos.old.x - x;
@@ -54,11 +81,9 @@ const sketch = (ctx, e) => {
         pkeys.d == "h" ||
         (!pkeys.d && offsetx * offsetx > offsety * offsety)
       ) {
-        console.log("X here!");
         pkeys.d = "h";
         y = recorded_mousePos.old.y;
       } else {
-        console.log("Y");
         x = recorded_mousePos.old.x;
         pkeys.d = "v";
       }
@@ -98,6 +123,8 @@ drawingbox.onmousedown = (e) => {
     x: e.offsetX,
     y: e.offsetY,
   });
+  currentContext.strokeStyle = currentColor;
+  currentContext.lineWidth = currentLineWidth;
   recorded_mousePos.old = {
     x: e.offsetX,
     y: e.offsetY,
@@ -108,10 +135,15 @@ const clear = (ctx) => {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 };
 
+drawingbox.onmouseleave = () => {
+  drawing = !true;
+};
+
 window.onmouseup = () => {
   if (!drawing) return;
   drawing = false;
   recorded_mousePos = { old: { x: 0, y: 0 } };
+  currentContext.closePath();
 };
 
-document.onmousemove = (e) => sketch(currentContext, e);
+document.onmousemove = (e) => sketch(currentContext, e, currentColor);

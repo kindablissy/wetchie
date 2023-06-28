@@ -4,14 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <style>
+        *{
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body style="margin: 0; padding: 0;">
-    <header>
-        <h1 style="text-align: center;">SketchyWeb</h1>
+    <header style="display: flex; align-items: center;justify-content: center;">
+        <a href="/index.html"><img src="./wetchy.png" alt="wetchy img" width="150px" height="auto"></a>
+        <h1 style="text-align: center;">Wetchy</h1>
     </header>
-    <main id="root" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <div><div></div><canvas height="600px" width="800px" id="canvas"></canvas></div>
-        <a href="" >refresh</a>
+    <main id="root" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div style="display: flex; flex-direction: column;">
+            <div style="background-color:powderblue;">
+                <h3 id="choosecolor" style="text-align: center;">Choose a color</h3>
+                 <div style=" display: flex; justify-content: space-between; padding: 5px; align-items: center;">
+            <label>Red</label>
+            <input type="range" id = "rangeRed" value = "0" min = "0" max = "255">
+            <label>Green</label>
+            <input type="range" id = "rangeGreen" value = "0" min = "0" max = "255">
+            <label>Blue</label>
+            <input type="range" id = "rangeBlue" value = "0" min = "0" max = "255">
+            <div id="colorshow" style="height: 50px; width: 50px; background-color: black;"></div>
+            <div style="height: 5px;"></div>
+        </div>
+        <h3 id="choosecolor" style="text-align: center;">Line Width</h3>
+
+            <input type="range" id = "linewidthRange" value = "1" min = "1" max = "100"><span id="currentlinespan">1</span>
+        <a href="" ><button>Reset Canvas</button></a>
+    </div>
+        <div style="height: 30px;"></div>
+   <div style="background-color: aquamarine; padding: 3px;">     <canvas height="600px" width="800px" id="canvas"></canvas>
+    </div></div>
     </main>
     <script src="./index.js" type="module"></script>
 </body>
