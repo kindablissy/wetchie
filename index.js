@@ -44,7 +44,8 @@ const sketch = (ctx, e) => {
   if (
     (recorded_mousePos.old.x - x) * (recorded_mousePos.old.x - x) +
       (recorded_mousePos.old.y - y) * (recorded_mousePos.old.y - y) >
-    100
+    // to have higher range for shift key to detect the direction more accurately
+    (pkeys.shiftDown && !pkeys.d ? 1000 : 100)
   ) {
     if (pkeys.shiftDown) {
       const offsetx = recorded_mousePos.old.x - x;
@@ -75,6 +76,10 @@ window.addEventListener("keydown", (e) => {
   if (e.code == "ShifRight" || "ShiftLeft") {
     if (!pkeys.shiftDown) pkeys.shiftDown = true;
   }
+
+  if (e.code == "KeyD") {
+    clear(currentContext);
+  }
 });
 
 window.addEventListener("keyup", (e) => {
@@ -97,6 +102,10 @@ drawingbox.onmousedown = (e) => {
     x: e.offsetX,
     y: e.offsetY,
   };
+};
+
+const clear = (ctx) => {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 };
 
 window.onmouseup = () => {
