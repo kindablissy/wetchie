@@ -125,6 +125,12 @@ window.addEventListener("keydown", (e) => {
   if (e.code == "Digit2") {
     changeLayer(1);
   }
+  if (e.code == "Digit3") {
+    changeLayer(2);
+  }
+  if (e.code == "Digit4") {
+    changeLayer(3);
+  }
 });
 
 window.addEventListener("keyup", (e) => {
