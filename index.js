@@ -1,15 +1,23 @@
 const ROOT = document.getElementById("root");
-const drawingbox = document.getElementById("canvas");
+const drawingbox = document.getElementById("canvas0");
 drawingbox.style.backgroundColor = "white";
+
+const layers = document.getElementsByTagName("canvas");
+var currentLayer = layers[0];
 var recorded_mousePos = { old: { x: 0, y: 0 } };
 var drawing = false;
-var currentContext = null;
+var eraser = false;
+var currentContext = layers[0].getContext("2d");
 var pkeys = {
   shiftDown: false,
   d: true,
 };
 var currentLineWidth = 1;
 var currentColor = "rgb(0,0,0)";
+
+const changeLayer = (number) => {
+  currentLayer = layers[number];
+};
 
 document
   .getElementById("rangeRed")
@@ -105,6 +113,18 @@ window.addEventListener("keydown", (e) => {
   if (e.code == "KeyD") {
     clear(currentContext);
   }
+  if (e.code == "KeyE") {
+    eraser = true;
+  }
+  if (e.code == "KeyB") {
+    eraser = false;
+  }
+  if (e.code == "Digit1") {
+    changeLayer(0);
+  }
+  if (e.code == "Digit2") {
+    changeLayer(1);
+  }
 });
 
 window.addEventListener("keyup", (e) => {
@@ -116,28 +136,29 @@ window.addEventListener("keyup", (e) => {
   }
 });
 
-drawingbox.onmousedown = (e) => {
-  if (drawing) return;
-  else drawing = !drawing;
-  currentContext = createContext(drawingbox, {
-    x: e.offsetX,
-    y: e.offsetY,
-  });
-  currentContext.strokeStyle = currentColor;
-  currentContext.lineWidth = currentLineWidth;
-  recorded_mousePos.old = {
-    x: e.offsetX,
-    y: e.offsetY,
-  };
-};
-
 const clear = (ctx) => {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 };
 
-drawingbox.onmouseleave = () => {
-  drawing = !true;
-};
+for (let element of layers) {
+  element.onmouseleave = () => {
+    drawing = !true;
+  };
+  element.onmousedown = (e) => {
+    if (drawing) return;
+    else drawing = !drawing;
+    currentContext = createContext(currentLayer, {
+      x: e.offsetX,
+      y: e.offsetY,
+    });
+    currentContext.lineWidth = currentLineWidth;
+    currentContext.strokeStyle = currentColor;
+    recorded_mousePos.old = {
+      x: e.offsetX,
+      y: e.offsetY,
+    };
+  };
+}
 
 window.onmouseup = () => {
   if (!drawing) return;
@@ -146,4 +167,22 @@ window.onmouseup = () => {
   currentContext.closePath();
 };
 
-document.onmousemove = (e) => sketch(currentContext, e, currentColor);
+const erase = (ctx, e) => {
+  const x = e.offsetX;
+  const y = e.offsetY;
+
+  ctx.clearRect(
+    x - ctx.lineWidth / 2,
+    y - ctx.lineWidth / 2,
+    ctx.lineWidth,
+    ctx.lineWidth
+  );
+};
+
+document.onmousemove = (e) => {
+  if (eraser & drawing) {
+    erase(currentContext, e);
+    return;
+  }
+  sketch(currentContext, e, currentColor);
+};
