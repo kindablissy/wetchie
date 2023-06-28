@@ -4,6 +4,6 @@
 
 ## features
 
-> Draw on the canvas
-> Shift key to draw straight lines
-> press d to delete
+> - Draw on the canvas
+> - Shift key to draw straight lines
+> - press d to delete
