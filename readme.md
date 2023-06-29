@@ -10,3 +10,4 @@
 > - select options from tools to set color of stroke and thickness of line
 > - layers selected from key 1,2
 > - eraser by e and brush tool by b
+> - ctrl-z for undo and ctrl-y for redo

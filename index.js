@@ -1,7 +1,7 @@
 const ROOT = document.getElementById("root");
 const drawingbox = document.getElementById("canvas0");
 drawingbox.style.backgroundColor = "white";
-
+const layerShow = document.getElementById("currentlayershow");
 var layers = [];
 for (let i of document.getElementsByTagName("canvas")) {
   layers.push(i.getContext("2d"));
@@ -21,6 +21,7 @@ var currentColor = "rgb(0,0,0)";
 const changeLayer = (number) => {
   currentLayer = number;
   currentContext = layers[currentLayer];
+  layerShow.innerText = number + 1;
 };
 
 document
@@ -82,7 +83,7 @@ const undoBuffer = (limit) => {
       ),
       ctx: currentLayer,
     });
-    if (ubuffer.length > limit) ubuffer.shift();
+    // if (ubuffer.length > limit) ubuffer.shift();
   };
   const rpush = (state) => {
     rBuffer.push(state);
