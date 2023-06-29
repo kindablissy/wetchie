@@ -2,12 +2,15 @@ const ROOT = document.getElementById("root");
 const drawingbox = document.getElementById("canvas0");
 drawingbox.style.backgroundColor = "white";
 
-const layers = document.getElementsByTagName("canvas");
-var currentLayer = layers[0];
+var layers = [];
+for (let i of document.getElementsByTagName("canvas")) {
+  layers.push(i.getContext("2d"));
+}
+var currentLayer = 0;
 var recorded_mousePos = { old: { x: 0, y: 0 } };
 var drawing = false;
 var eraser = false;
-var currentContext = layers[0].getContext("2d");
+var currentContext = layers[0];
 var pkeys = {
   shiftDown: false,
   d: true,
@@ -16,7 +19,8 @@ var currentLineWidth = 1;
 var currentColor = "rgb(0,0,0)";
 
 const changeLayer = (number) => {
-  currentLayer = layers[number];
+  currentLayer = number;
+  currentContext = layers[currentLayer];
 };
 
 document
@@ -44,6 +48,79 @@ function changeColor() {
   document.getElementById("choosecolor").style.color = currentColor;
 }
 
+const Stack = () => {
+  let stack = [];
+  let size = 0;
+  let limit = 0;
+  const putStack = (element) => {
+    if (limit != 0 && size + 1 > limit) {
+      return;
+    }
+    stack.push(element);
+  };
+  const get = (element) => {
+    return stack.pop(element);
+  };
+
+  return {
+    stack: stack,
+    put: putStack,
+    get: get,
+  };
+};
+
+const undoBuffer = (limit) => {
+  const ubuffer = [];
+  const rBuffer = [];
+  const pushTree = () => {
+    ubuffer.push({
+      imagedata: currentContext.getImageData(
+        0,
+        0,
+        currentContext.canvas.width,
+        currentContext.canvas.height
+      ),
+      ctx: currentLayer,
+    });
+    if (ubuffer.length > limit) ubuffer.shift();
+  };
+  const rpush = (state) => {
+    rBuffer.push(state);
+  };
+  const redo = () => {
+    const state = rBuffer.pop();
+    if (!state) return;
+    console.log("here");
+    changeLayer(state.ctx);
+    currentContext.putImageData(state.imagedata, 0, 0);
+    pushTree();
+    return state;
+  };
+  const undo = () => {
+    const state = ubuffer.pop();
+    if (!state || state == undefined) return;
+    changeLayer(state.ctx);
+    rpush({
+      ctx: currentLayer,
+      imagedata: currentContext.getImageData(
+        0,
+        0,
+        currentContext.canvas.width,
+        currentContext.canvas.width
+      ),
+    });
+    currentContext.putImageData(state.imagedata, 0, 0);
+    return state;
+  };
+  return {
+    redo: redo,
+    upush: pushTree,
+    undo: undo,
+  };
+};
+
+const { redo, upush, undo } = undoBuffer(10);
+
 const Element = (style, tag = "div") => {
   const element = document.createElement(tag);
   const styles = Object.keys(style);
@@ -65,8 +142,7 @@ const DrawingBox = (style) => {
   return element;
 };
 
-const createContext = (element, position) => {
-  const ctx = element.getContext("2d");
+const createContext = (ctx, position) => {
   ctx.beginPath();
   ctx.moveTo(position.x, position.y);
   return ctx;
@@ -140,6 +216,13 @@ window.addEventListener("keyup", (e) => {
       pkeys.d = false;
     }
   }
+
+  if (e.code == "KeyY" && e.ctrlKey) {
+    redo();
+  }
+  if (e.code == "KeyZ" && e.ctrlKey) {
+    undo();
+  }
 });
 
 const clear = (ctx) => {
@@ -147,13 +230,14 @@ const clear = (ctx) => {
 };
 
 for (let element of layers) {
-  element.onmouseleave = () => {
+  element.canvas.onmouseleave = () => {
     drawing = !true;
   };
-  element.onmousedown = (e) => {
+  element.canvas.onmousedown = (e) => {
     if (drawing) return;
     else drawing = !drawing;
-    currentContext = createContext(currentLayer, {
+    upush();
+    currentContext = createContext(layers[currentLayer], {
       x: e.offsetX,
       y: e.offsetY,
     });
