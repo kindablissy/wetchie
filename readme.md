@@ -11,3 +11,4 @@
 > - layers selected from key 1,2
 > - eraser by e and brush tool by b
 > - ctrl-z for undo and ctrl-y for redo
+> - g tool for bucket tool
