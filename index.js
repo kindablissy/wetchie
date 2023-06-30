@@ -469,7 +469,7 @@ document.onmousemove = (e) => {
     return;
   }
   if (selectedTool == toolKey.shapeTool && drawing) {
-    return createShape("line", e);
+    return createShape("rectangle", e);
   }
   if (selectedTool == toolKey.brush) sketch(currentContext, e, currentColor);
 };
@@ -492,6 +492,15 @@ const createShape = (shape, e) => {
     visual.stroke(currentPath);
   }
   if (shape === "rectangle") {
+    currentPath = new Path2D();
+    clear(visual);
+    console.log("here");
+    visual.lineWidth = currentLineWidth;
+    visual.strokeStyle = currentColor;
+    visual.fillStyle = currentColor;
+    currentPath.moveTo(x, y);
+    currentPath.rect(x, y, e.offsetX - x, e.offsetY - y);
+    visual.stroke(currentPath);
   }
 };
 
