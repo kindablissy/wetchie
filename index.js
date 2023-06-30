@@ -355,6 +355,16 @@ window.addEventListener("keydown", (e) => {
   if (e.code == "Digit4") {
     changeLayer(3);
   }
+  if (e.code == "BracketRight") {
+    const element = document.getElementById("linewidthRange");
+    element.value = ++currentLineWidth;
+    document.getElementById("currentlinespan").innerText = currentLineWidth;
+  }
+  if (e.code == "BracketLeft") {
+    const element = document.getElementById("linewidthRange");
+    element.value = --currentLineWidth;
+    document.getElementById("currentlinespan").innerText = currentLineWidth;
+  }
 });
 
 window.addEventListener("keyup", (e) => {
@@ -469,7 +479,7 @@ document.onmousemove = (e) => {
     return;
   }
   if (selectedTool == toolKey.shapeTool && drawing) {
-    return createShape("rectangle", e);
+    return createShape("square", e);
   }
   if (selectedTool == toolKey.brush) sketch(currentContext, e, currentColor);
 };
@@ -500,6 +510,23 @@ const createShape = (shape, e) => {
     visual.fillStyle = currentColor;
     currentPath.moveTo(x, y);
     currentPath.rect(x, y, e.offsetX - x, e.offsetY - y);
+    visual.stroke(currentPath);
+  }
+  if (shape === "square") {
+    currentPath = new Path2D();
+    clear(visual);
+    console.log("here");
+    visual.lineWidth = currentLineWidth;
+    visual.strokeStyle = currentColor;
+    visual.fillStyle = currentColor;
+    currentPath.moveTo(x, y);
+    const width = e.offsetX - x > e.offsetY - x ? e.offsetX - x : e.offsetY - y;
+    currentPath.rect(
+      x,
+      y,
+      width * ((e.offsetX - x) / (e.offsetX - x)),
+      (width * (e.offsetY - y)) / (e.offsetY - y)
+    );
     visual.stroke(currentPath);
   }
 };
