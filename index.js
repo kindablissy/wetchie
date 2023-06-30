@@ -4,12 +4,22 @@ drawingbox.style.backgroundColor = "white";
 const layerShow = document.getElementById("currentlayershow");
 var layers = [];
 for (let i of document.getElementsByTagName("canvas")) {
-  layers.push(i.getContext("2d"));
+  layers.push(i.getContext("2d", { willReadFrequently: true }));
 }
 var currentLayer = 0;
 var recorded_mousePos = { old: { x: 0, y: 0 } };
 var drawing = false;
 var eraser = false;
+var fillToolSelected = false;
+
+const toolKey = {
+  brush: 0,
+  eraser: 1,
+  fillTool: 2,
+};
+
+var selectedTool = 0;
+
 var currentContext = layers[0];
 var pkeys = {
   shiftDown: false,
@@ -17,7 +27,12 @@ var pkeys = {
 };
 var currentLineWidth = 1;
 var currentColor = "rgb(0,0,0)";
-
+var currentcolorValue = {
+  r: 0,
+  g: 0,
+  b: 0,
+  a: 255,
+};
 const changeLayer = (number) => {
   currentLayer = number;
   currentContext = layers[currentLayer];
@@ -45,6 +60,10 @@ function changeColor() {
   var green = document.getElementById("rangeGreen").value;
   var blue = document.getElementById("rangeBlue").value;
   currentColor = "RGB(" + red + "," + green + "," + blue + ")";
+  currentcolorValue.r = red;
+  currentcolorValue.g = green;
+  currentcolorValue.b = blue;
+
   document.getElementById("colorshow").style.backgroundColor = currentColor;
   document.getElementById("choosecolor").style.color = currentColor;
 }
@@ -92,15 +111,14 @@ const undoBuffer = (limit) => {
     const state = rBuffer.pop();
     if (!state) return;
     console.log("here");
+    pushTree();
     changeLayer(state.ctx);
     currentContext.putImageData(state.imagedata, 0, 0);
-    pushTree();
     return state;
   };
   const undo = () => {
     const state = ubuffer.pop();
     if (!state || state == undefined) return;
-    changeLayer(state.ctx);
     rpush({
       ctx: currentLayer,
       imagedata: currentContext.getImageData(
@@ -110,6 +128,7 @@ const undoBuffer = (limit) => {
         currentContext.canvas.width
       ),
     });
+    changeLayer(state.ctx);
     currentContext.putImageData(state.imagedata, 0, 0);
     return state;
   };
@@ -149,6 +168,118 @@ const createContext = (ctx, position) => {
   return ctx;
 };
 
+const fill = (imagedata, x = 0, y = 0, o_color, color) => {
+  // x = (currentContext.canvas.width / 2 - 1) * 4;
+  // y = currentContext.canvas.height / 2 - 1;
+  let same = true;
+  for (let i in o_color) {
+    if (o_color[i] != color[i]) {
+      same = false;
+    }
+  }
+  if (same) return;
+  console.log("filling!");
+  traverseR(
+    imagedata,
+    x,
+    y,
+    currentContext.canvas.height,
+    currentContext.canvas.width,
+    o_color,
+    color
+  );
+  traverse(
+    imagedata,
+    x + 4,
+    y,
+    currentContext.canvas.height,
+    currentContext.canvas.width,
+    o_color,
+    color
+  );
+  upush();
+  currentContext.putImageData(imagedata, 0, 0);
+};
+
+const traverseR = (array, x, y, h, w, o_color, n_color) => {
+  let position = y * w * 4 + x;
+  // console.log(position, x, y, w, h, o_color, n_color);
+  // console.log(o_color);
+
+  if (position > array.data.length) {
+    return;
+  }
+  if (
+    array.data[position] == o_color[0] &&
+    array.data[position + 1] == o_color[1] &&
+    array.data[position + 2] == o_color[2] &&
+    array.data[position + 3] == o_color[3]
+  ) {
+    array.data[position] = n_color[0];
+    array.data[position + 1] = n_color[1];
+    array.data[position + 2] = n_color[2];
+    array.data[position + 3] = n_color[3];
+    // go left
+    // if (Math.floor((position + 5) / (w * 4)) <= y) {
+    //   traverseR(array, x + 4, y, h, w, o_color, n_color);
+    // }
+    // go right
+    if ((position - 3) / (w * 4) > y)
+      traverseR(array, x - 4, y, h, w, o_color, n_color);
+    // go down
+    if (x * y + w * 4 < array.data.length)
+      traverseR(array, x, y + 1, h, w, o_color, n_color);
+    // // go up
+    if (position - w * 4 >= 0)
+      traverseR(array, x, y - 1, h, w, o_color, n_color);
+  }
+};
+
+// TODO: Need to optimize this.
+const traverse = (array, x, y, h, w, o_color, n_color) => {
+  let position = y * w * 4 + x;
+  // console.log(position, x, y, w, h, o_color, n_color);
+
+  if (position > array.data.length) {
+    return;
+  }
+  if (
+    array.data[position] == o_color[0] &&
+    array.data[position + 1] == o_color[1] &&
+    array.data[position + 2] == o_color[2] &&
+    array.data[position + 3] == o_color[3]
+  ) {
+    array.data[position] = n_color[0];
+    array.data[position + 1] = n_color[1];
+    array.data[position + 2] = n_color[2];
+    array.data[position + 3] = n_color[3];
+
+    // go left
+    if (Math.floor((position + 5) / (w * 4)) <= y) {
+      traverse(array, x + 4, y, h, w, o_color, n_color);
+    }
+    // // go right
+    // if ((position - 3) / (w * 4) > y)
+    //   traverse(array, x - 4, y, h, w, o_color, n_color);
+    // go down
+    if (x * y + w * 4 < array.data.length)
+      traverse(array, x, y + 1, h, w, o_color, n_color);
+    // go up
+    if (position - w * 4 >= 0)
+      traverse(array, x, y - 1, h, w, o_color, n_color);
+  }
+};
+
+const inverse = (imagedata) => {
+  for (let i = 0; i < imagedata.data.length; i += 4) {
+    imagedata.data[i] = 255 - imagedata.data[i];
+    imagedata.data[i + 2] = 255 - imagedata.data[i + 2];
+    imagedata.data[i + 1] = 255 - imagedata.data[i + 1];
+  }
+  // console.log(imdata.data);
+  currentContext.putImageData(imagedata, 0, 0);
+};
+
 const sketch = (ctx, e, color = "rgb(0,0,0)") => {
   if (!drawing) return;
   let x = e.offsetX;
@@ -174,6 +305,15 @@ const sketch = (ctx, e, color = "rgb(0,0,0)") => {
       }
     }
     ctx.lineTo(x, y);
+    // const x = e.offsetX;
+    // const y = e.offsetY;
+
+    // ctx.fillRect(
+    //   x - ctx.lineWidth / 2,
+    //   y - ctx.lineWidth / 2,
+    //   ctx.lineWidth,
+    //   ctx.lineWidth
+    // );
     ctx.stroke();
     recorded_mousePos.old = {
       x: x,
@@ -191,9 +331,11 @@ window.addEventListener("keydown", (e) => {
     clear(currentContext);
   }
   if (e.code == "KeyE") {
+    selectedTool = toolKey.eraser;
     eraser = true;
   }
   if (e.code == "KeyB") {
+    selectedTool = toolKey.brush;
     eraser = false;
   }
   if (e.code == "Digit1") {
@@ -220,9 +362,18 @@ window.addEventListener("keyup", (e) => {
 
   if (e.code == "KeyY" && e.ctrlKey) {
     redo();
+    return;
   }
   if (e.code == "KeyZ" && e.ctrlKey) {
     undo();
+    return;
+  }
+
+  if (e.code == "KeyG") {
+    selectedTool = toolKey.fillTool;
+    drawing = false;
+
+    fillToolSelected = true;
   }
 });
 
@@ -234,6 +385,41 @@ for (let element of layers) {
   element.canvas.onmouseleave = () => {
     drawing = !true;
   };
+  element.canvas.onclick = (e) => {
+    if (selectedTool == toolKey.fillTool) {
+      const data = currentContext.getImageData(
+        0,
+        0,
+        currentContext.canvas.width,
+        currentContext.canvas.height
+      );
+      const position =
+        e.offsetY * currentContext.canvas.width * 4 + e.offsetX * 4;
+      console.log([
+        data.data[position + 0],
+        data.data[position + 1],
+        data.data[position + 2],
+        data.data[position + 3],
+      ]);
+      fill(
+        data,
+        e.offsetX * 4,
+        e.offsetY,
+        [
+          data.data[position + 0],
+          data.data[position + 1],
+          data.data[position + 2],
+          data.data[position + 3],
+        ],
+        [
+          currentcolorValue.r,
+          currentcolorValue.g,
+          currentcolorValue.b,
+          currentcolorValue.a,
+        ]
+      );
+    }
+  };
   element.canvas.onmousedown = (e) => {
     if (drawing) return;
     else drawing = !drawing;
@@ -244,6 +430,7 @@ for (let element of layers) {
     });
     currentContext.lineWidth = currentLineWidth;
     currentContext.strokeStyle = currentColor;
+    currentContext.fillStyle = currentColor;
     recorded_mousePos.old = {
       x: e.offsetX,
       y: e.offsetY,
@@ -271,9 +458,9 @@ const erase = (ctx, e) => {
 };
 
 document.onmousemove = (e) => {
-  if (eraser & drawing) {
+  if ((selectedTool == toolKey.eraser) & drawing) {
     erase(currentContext, e);
     return;
   }
-  sketch(currentContext, e, currentColor);
+  if (selectedTool == toolKey.brush) sketch(currentContext, e, currentColor);
 };
