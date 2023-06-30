@@ -16,6 +16,7 @@ const toolKey = {
   brush: 0,
   eraser: 1,
   fillTool: 2,
+  shapeTool: 3,
 };
 
 var selectedTool = 0;
@@ -334,6 +335,10 @@ window.addEventListener("keydown", (e) => {
     selectedTool = toolKey.eraser;
     eraser = true;
   }
+  if (e.code == "KeyL") {
+    selectedTool = toolKey.shapeTool;
+    eraser = false;
+  }
   if (e.code == "KeyB") {
     selectedTool = toolKey.brush;
     eraser = false;
@@ -421,7 +426,7 @@ for (let element of layers) {
     }
   };
   element.canvas.onmousedown = (e) => {
-    if (drawing) return;
+    if (drawing || selectedTool == toolKey.fillTool) return;
     else drawing = !drawing;
     upush();
     currentContext = createContext(layers[currentLayer], {
@@ -441,6 +446,7 @@ for (let element of layers) {
 window.onmouseup = () => {
   if (!drawing) return;
   drawing = false;
+  if (selectedTool == toolKey.shapeTool) resolveShape();
   recorded_mousePos = { old: { x: 0, y: 0 } };
   currentContext.closePath();
 };
@@ -462,5 +468,35 @@ document.onmousemove = (e) => {
     erase(currentContext, e);
     return;
   }
+  if (selectedTool == toolKey.shapeTool && drawing) {
+    return createShape("line", e);
+  }
   if (selectedTool == toolKey.brush) sketch(currentContext, e, currentColor);
+};
+
+var currentPath = null;
+
+const createShape = (shape, e) => {
+  const x = recorded_mousePos.old.x;
+  const y = recorded_mousePos.old.y;
+  const visual = layers[layers.length - 1];
+  if (shape === "line") {
+    currentPath = new Path2D();
+    clear(visual);
+    console.log("here");
+    visual.lineWidth = currentLineWidth;
+    visual.strokeStyle = currentColor;
+    visual.fillStyle = currentColor;
+    currentPath.moveTo(x, y);
+    currentPath.lineTo(e.offsetX, e.offsetY);
+    visual.stroke(currentPath);
+  }
+  if (shape === "rectangle") {
+  }
+};
+
+const resolveShape = () => {
+  const visual = layers[layers.length - 1];
+  clear(visual);
+  currentContext.stroke(currentPath);
 };
