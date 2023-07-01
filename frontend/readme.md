@@ -12,3 +12,4 @@
 > - eraser by e and brush tool by b
 > - ctrl-z for undo and ctrl-y for redo
 > - g tool for bucket tool
+> - I key for eye-tool/ colorpicker. (only works inside canvas!)

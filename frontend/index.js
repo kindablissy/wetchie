@@ -16,6 +16,44 @@ var recorded_mousePos = { old: { x: 0, y: 0 } };
 var drawing = false;
 var eraser = false;
 var fillToolSelected = false;
+
+const saveState = () => {
+  let i = 0;
+
+  for (let e of layers) {
+    localStorage.setItem(
+      i,
+      JSON.stringify(
+        e
+          .getImageData(0, 0, e.canvas.width, e.canvas.height)
+          .data.slice(e.canvas.width * e.canvas.height * 4 - 3000)
+      )
+    );
+    i++;
+  }
+};
+
+const loadState = () => {
+  for (let i in layers) {
+    const imdata = localStorage.getItem(i);
+    console.log(imdata.data);
+    if (imdata) {
+      try {
+        layers[i].putImageData(imdata, 0, 0);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+  }
+};
+
+loadState();
+
+document.getElementById("savebtn").addEventListener("click", () => {
+  console.log("here");
+  saveState();
+});
+
 const visual = layers[layers.length - 1];
 const toolKey = {
   brush: 0,
