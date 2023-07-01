@@ -33,20 +33,29 @@ const saveState = () => {
   }
 };
 
-const loadState = () => {
-  for (let i in layers) {
-    const imdata = localStorage.getItem(i);
-    if (imdata) {
-      try {
-        layers[i].putImageData(imdata, 0, 0);
-      } catch (e) {
-        console.log(e);
+document.getElementById("loadbtn").addEventListener("change", async (e) => {
+  console.log("here?");
+  await loadState(e.target.files[0]);
+});
+
+const loadState = async (file) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const fileData = JSON.parse(reader.result);
+    for (let i in layers) {
+      const imdata = fileData[i.toString()];
+      if (imdata) {
+        try {
+          layers[i].putImageData(new ImageData(imdata.data), 0, 0);
+        } catch (e) {
+          console.log(e);
+        }
       }
     }
-  }
+    reader.readAsText(file);
+    return;
+  };
 };
-
-loadState();
 
 document.getElementById("savebtn").addEventListener("click", () => {
   console.log("here");
