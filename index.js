@@ -4,14 +4,19 @@ drawingbox.style.backgroundColor = "white";
 const layerShow = document.getElementById("currentlayershow");
 var layers = [];
 for (let i of document.getElementsByTagName("canvas")) {
-  layers.push(i.getContext("2d", { willReadFrequently: true }));
+  layers.push(
+    i.getContext("2d", {
+      willReadFrequently: true,
+      powerPreference: "high-performance",
+    })
+  );
 }
 var currentLayer = 0;
 var recorded_mousePos = { old: { x: 0, y: 0 } };
 var drawing = false;
 var eraser = false;
 var fillToolSelected = false;
-
+const visual = layers[layers.length - 1];
 const toolKey = {
   brush: 0,
   eraser: 1,
@@ -55,15 +60,21 @@ document
   .getElementById("rangeBlue")
   .addEventListener("input", (e) => changeColor(e));
 
+document
+  .getElementById("rangeAlpha")
+  .addEventListener("input", (e) => changeColor(e));
 function changeColor() {
   ///Assigning variables for the primary colors
   var red = document.getElementById("rangeRed").value;
   var green = document.getElementById("rangeGreen").value;
   var blue = document.getElementById("rangeBlue").value;
-  currentColor = "RGB(" + red + "," + green + "," + blue + ")";
+  var alpha = document.getElementById("rangeAlpha").value;
+  currentColor =
+    "RGB(" + red + "," + green + "," + blue + ", " + alpha / 255 + ")";
   currentcolorValue.r = red;
   currentcolorValue.g = green;
   currentcolorValue.b = blue;
+  currentcolorValue.a = alpha;
 
   document.getElementById("colorshow").style.backgroundColor = currentColor;
   document.getElementById("choosecolor").style.color = currentColor;
@@ -159,13 +170,13 @@ const ColorBox = (style) => {
 
 const DrawingBox = (style) => {
   const element = Element(style, "canvas");
-
   return element;
 };
 
 const createContext = (ctx, position) => {
   ctx.beginPath();
   ctx.moveTo(position.x, position.y);
+  console.log("here");
   return ctx;
 };
 
@@ -305,17 +316,9 @@ const sketch = (ctx, e, color = "rgb(0,0,0)") => {
         pkeys.d = "v";
       }
     }
-    ctx.lineTo(x, y);
-    // const x = e.offsetX;
-    // const y = e.offsetY;
-
-    // ctx.fillRect(
-    //   x - ctx.lineWidth / 2,
-    //   y - ctx.lineWidth / 2,
-    //   ctx.lineWidth,
-    //   ctx.lineWidth
-    // );
-    ctx.stroke();
+    clear(ctx);
+    currentPath.lineTo(x, y);
+    ctx.stroke(currentPath);
     recorded_mousePos.old = {
       x: x,
       y: y,
@@ -398,6 +401,7 @@ const clear = (ctx) => {
 
 for (let element of layers) {
   element.canvas.onmouseleave = () => {
+    if (drawing) resolveShape();
     drawing = !true;
   };
   element.canvas.onclick = (e) => {
@@ -436,8 +440,14 @@ for (let element of layers) {
     }
   };
   element.canvas.onmousedown = (e) => {
-    if (drawing || selectedTool == toolKey.fillTool) return;
-    else drawing = !drawing;
+    if (selectedTool == toolKey.fillTool) return;
+    drawing = true;
+    visual.beginPath();
+    currentPath = new Path2D();
+    currentPath.moveTo(e.offsetX, e.offsetY);
+    visual.lineWidth = currentLineWidth;
+    visual.strokeStyle = currentColor;
+    visual.fillStyle = currentColor;
     upush();
     currentContext = createContext(layers[currentLayer], {
       x: e.offsetX,
@@ -456,7 +466,8 @@ for (let element of layers) {
 window.onmouseup = () => {
   if (!drawing) return;
   drawing = false;
-  if (selectedTool == toolKey.shapeTool) resolveShape();
+  if (selectedTool == toolKey.shapeTool || selectedTool == toolKey.brush)
+    resolveShape();
   recorded_mousePos = { old: { x: 0, y: 0 } };
   currentContext.closePath();
 };
@@ -481,7 +492,9 @@ document.onmousemove = (e) => {
   if (selectedTool == toolKey.shapeTool && drawing) {
     return createShape("square", e);
   }
-  if (selectedTool == toolKey.brush) sketch(currentContext, e, currentColor);
+  if (selectedTool == toolKey.brush) {
+    sketch(visual, e, currentColor);
+  }
 };
 
 var currentPath = null;
@@ -489,7 +502,6 @@ var currentPath = null;
 const createShape = (shape, e) => {
   const x = recorded_mousePos.old.x;
   const y = recorded_mousePos.old.y;
-  const visual = layers[layers.length - 1];
   if (shape === "line") {
     currentPath = new Path2D();
     clear(visual);
@@ -499,7 +511,7 @@ const createShape = (shape, e) => {
     visual.fillStyle = currentColor;
     currentPath.moveTo(x, y);
     currentPath.lineTo(e.offsetX, e.offsetY);
-    visual.stroke(currentPath);
+    for (let i = 0; i < 5; i++) visual.stroke(currentPath);
   }
   if (shape === "rectangle") {
     currentPath = new Path2D();
@@ -532,7 +544,6 @@ const createShape = (shape, e) => {
 };
 
 const resolveShape = () => {
-  const visual = layers[layers.length - 1];
   clear(visual);
   currentContext.stroke(currentPath);
 };
