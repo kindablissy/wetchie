@@ -36,7 +36,6 @@ const saveState = () => {
 const loadState = () => {
   for (let i in layers) {
     const imdata = localStorage.getItem(i);
-    console.log(imdata.data);
     if (imdata) {
       try {
         layers[i].putImageData(imdata, 0, 0);
