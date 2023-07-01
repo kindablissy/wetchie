@@ -22,6 +22,7 @@ const toolKey = {
   eraser: 1,
   fillTool: 2,
   shapeTool: 3,
+  eyeTool: 4,
 };
 
 var selectedTool = 0;
@@ -65,10 +66,10 @@ document
   .addEventListener("input", (e) => changeColor(e));
 function changeColor() {
   ///Assigning variables for the primary colors
-  var red = document.getElementById("rangeRed").value;
-  var green = document.getElementById("rangeGreen").value;
-  var blue = document.getElementById("rangeBlue").value;
-  var alpha = document.getElementById("rangeAlpha").value;
+  const red = document.getElementById("rangeRed").value;
+  const green = document.getElementById("rangeGreen").value;
+  const blue = document.getElementById("rangeBlue").value;
+  const alpha = document.getElementById("rangeAlpha").value;
   currentColor =
     "RGB(" + red + "," + green + "," + blue + ", " + alpha / 255 + ")";
   currentcolorValue.r = red;
@@ -76,6 +77,24 @@ function changeColor() {
   currentcolorValue.b = blue;
   currentcolorValue.a = alpha;
 
+  document.getElementById("colorshow").style.backgroundColor = currentColor;
+  document.getElementById("choosecolor").style.color = currentColor;
+}
+
+function changeColorV(r, g, b, a) {
+  const red = document.getElementById("rangeRed");
+  const green = document.getElementById("rangeGreen");
+  const blue = document.getElementById("rangeBlue");
+  const alpha = document.getElementById("rangeAlpha");
+  red.value = r;
+  green.value = g;
+  blue.value = b;
+  alpha.value = a;
+  currentColor = "RGB(" + r + "," + g + "," + b + ", " + a / 255 + ")";
+  currentcolorValue.r = r;
+  currentcolorValue.g = g;
+  currentcolorValue.b = b;
+  currentcolorValue.a = a;
   document.getElementById("colorshow").style.backgroundColor = currentColor;
   document.getElementById("choosecolor").style.color = currentColor;
 }
@@ -122,7 +141,6 @@ const undoBuffer = (limit) => {
   const redo = () => {
     const state = rBuffer.pop();
     if (!state) return;
-    console.log("here");
     pushTree();
     changeLayer(state.ctx);
     currentContext.putImageData(state.imagedata, 0, 0);
@@ -176,7 +194,6 @@ const DrawingBox = (style) => {
 const createContext = (ctx, position) => {
   ctx.beginPath();
   ctx.moveTo(position.x, position.y);
-  console.log("here");
   return ctx;
 };
 
@@ -190,7 +207,6 @@ const fill = (imagedata, x = 0, y = 0, o_color, color) => {
     }
   }
   if (same) return;
-  console.log("filling!");
   traverseR(
     imagedata,
     x,
@@ -215,8 +231,6 @@ const fill = (imagedata, x = 0, y = 0, o_color, color) => {
 
 const traverseR = (array, x, y, h, w, o_color, n_color) => {
   let position = y * w * 4 + x;
-  // console.log(position, x, y, w, h, o_color, n_color);
-  // console.log(o_color);
 
   if (position > array.data.length) {
     return;
@@ -250,7 +264,6 @@ const traverseR = (array, x, y, h, w, o_color, n_color) => {
 // TODO: Need to optimize this.
 const traverse = (array, x, y, h, w, o_color, n_color) => {
   let position = y * w * 4 + x;
-  // console.log(position, x, y, w, h, o_color, n_color);
 
   if (position > array.data.length) {
     return;
@@ -288,7 +301,6 @@ const inverse = (imagedata) => {
     imagedata.data[i + 2] = 255 - imagedata.data[i + 2];
     imagedata.data[i + 1] = 255 - imagedata.data[i + 1];
   }
-  // console.log(imdata.data);
   currentContext.putImageData(imagedata, 0, 0);
 };
 
@@ -327,7 +339,7 @@ const sketch = (ctx, e, color = "rgb(0,0,0)") => {
 };
 
 window.addEventListener("keydown", (e) => {
-  if (e.code == "ShifRight" || "ShiftLeft") {
+  if (e.code == "ShifRight" || e.code == "ShiftLeft") {
     if (!pkeys.shiftDown) pkeys.shiftDown = true;
   }
 
@@ -371,13 +383,12 @@ window.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("keyup", (e) => {
-  if (e.code == "ShifRight" || "ShiftLeft") {
+  if (e.code == "ShifRight" || e.code == "ShiftLeft") {
     if (pkeys.shiftDown) {
       pkeys.shiftDown = false;
       pkeys.d = false;
     }
   }
-
   if (e.code == "KeyY" && e.ctrlKey) {
     redo();
     return;
@@ -386,7 +397,11 @@ window.addEventListener("keyup", (e) => {
     undo();
     return;
   }
-
+  if (e.code == "KeyI") {
+    selectedTool = toolKey.eyeTool;
+    drawing = false;
+    return;
+  }
   if (e.code == "KeyG") {
     selectedTool = toolKey.fillTool;
     drawing = false;
@@ -405,6 +420,10 @@ for (let element of layers) {
     drawing = !true;
   };
   element.canvas.onclick = (e) => {
+    if (selectedTool == toolKey.eyeTool) {
+      const color = getColor(currentContext, { x: e.offsetX, y: e.offsetY });
+      changeColorV(color[0], color[1], color[2], color[3]);
+    }
     if (selectedTool == toolKey.fillTool) {
       const data = currentContext.getImageData(
         0,
@@ -414,12 +433,6 @@ for (let element of layers) {
       );
       const position =
         e.offsetY * currentContext.canvas.width * 4 + e.offsetX * 4;
-      console.log([
-        data.data[position + 0],
-        data.data[position + 1],
-        data.data[position + 2],
-        data.data[position + 3],
-      ]);
       fill(
         data,
         e.offsetX * 4,
@@ -442,6 +455,11 @@ for (let element of layers) {
   element.canvas.onmousedown = (e) => {
     if (selectedTool == toolKey.fillTool) return;
     drawing = true;
+    if (selectedTool == toolKey.eyeTool && drawing) {
+      const color = getColor(currentContext, { x: e.offsetX, y: e.offsetY });
+      changeColorV(color[0], color[1], color[2], color[3]);
+      return;
+    }
     visual.beginPath();
     currentPath = new Path2D();
     currentPath.moveTo(e.offsetX, e.offsetY);
@@ -492,6 +510,10 @@ document.onmousemove = (e) => {
   if (selectedTool == toolKey.shapeTool && drawing) {
     return createShape("square", e);
   }
+  if (selectedTool == toolKey.eyeTool && drawing) {
+    const color = getColor(currentContext, { x: e.offsetX, y: e.offsetY });
+    changeColorV(color[0], color[1], color[2], color[3]);
+  }
   if (selectedTool == toolKey.brush) {
     sketch(visual, e, currentColor);
   }
@@ -505,7 +527,6 @@ const createShape = (shape, e) => {
   if (shape === "line") {
     currentPath = new Path2D();
     clear(visual);
-    console.log("here");
     visual.lineWidth = currentLineWidth;
     visual.strokeStyle = currentColor;
     visual.fillStyle = currentColor;
@@ -516,7 +537,6 @@ const createShape = (shape, e) => {
   if (shape === "rectangle") {
     currentPath = new Path2D();
     clear(visual);
-    console.log("here");
     visual.lineWidth = currentLineWidth;
     visual.strokeStyle = currentColor;
     visual.fillStyle = currentColor;
@@ -527,7 +547,6 @@ const createShape = (shape, e) => {
   if (shape === "square") {
     currentPath = new Path2D();
     clear(visual);
-    console.log("here");
     visual.lineWidth = currentLineWidth;
     visual.strokeStyle = currentColor;
     visual.fillStyle = currentColor;
@@ -543,7 +562,25 @@ const createShape = (shape, e) => {
   }
 };
 
+const getColor = (ctx, position) => {
+  const color = ctx.getImageData(position.x, position.y, 1, 1).data;
+  if (color[3] == 0) {
+    return [255, 255, 255, 255];
+  }
+  color[3] = currentcolorValue.a;
+  console.log(currentcolorValue.a);
+  return color;
+};
+
 const resolveShape = () => {
   clear(visual);
   currentContext.stroke(currentPath);
+};
+
+const blend = (p1, p2, p3) => {
+  p3[3] = p1[3] + p2[3](1 - p1[3]);
+  for (let i = 0; i < 3; i++) {
+    p3[i] = p1[i] * p1[3] + p2[i] * p2[3] * (1 - p1[3]);
+    p3[i] = p3[i] / p3[3];
+  }
 };
