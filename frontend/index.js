@@ -17,44 +17,55 @@ var drawing = false;
 var eraser = false;
 var fillToolSelected = false;
 
-const saveState = () => {
+const saveState = async () => {
   let i = 0;
-
+  let content = [];
   for (let e of layers) {
-    localStorage.setItem(
-      i,
-      JSON.stringify(
-        e
-          .getImageData(0, 0, e.canvas.width, e.canvas.height)
-          .data.slice(e.canvas.width * e.canvas.height * 4 - 3000)
-      )
-    );
+    // if (i == 1) break;
+    content[i] = e.getImageData(
+      0,
+      0,
+      e.canvas.width,
+      e.canvas.height
+    ).data.buffer;
     i++;
   }
+
+  const file = new Blob(content, { type: "mimeType" });
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Wetchieproject.wet";
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
-document.getElementById("loadbtn").addEventListener("change", async (e) => {
+document.getElementById("loadbtn").addEventListener("input", async (e) => {
   console.log("here?");
   await loadState(e.target.files[0]);
 });
 
 const loadState = async (file) => {
   const reader = new FileReader();
-  reader.onload = () => {
-    const fileData = JSON.parse(reader.result);
-    for (let i in layers) {
-      const imdata = fileData[i.toString()];
-      if (imdata) {
-        try {
-          layers[i].putImageData(new ImageData(imdata.data), 0, 0);
-        } catch (e) {
-          console.log(e);
-        }
-      }
-    }
-    reader.readAsText(file);
-    return;
-  };
+  const c = await file.arrayBuffer();
+  console.log(c);
+  const ar = new Uint8ClampedArray(c);
+  if (ar.length / (4 * 800 * 600) != layers.length) {
+    return alert("There seems to be a problem with the file : )");
+  }
+  const offset = ar.length / 5;
+  let i = 0;
+  for (let e of layers) {
+    const currentIndex = i * offset;
+    e.putImageData(
+      new ImageData(ar.slice(currentIndex, currentIndex + offset), 800),
+      0,
+      0
+    );
+    i++;
+  }
+  return;
+  // };
 };
 
 document.getElementById("savebtn").addEventListener("click", () => {
