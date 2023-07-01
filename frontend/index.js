@@ -427,15 +427,46 @@ window.addEventListener("keydown", (e) => {
   if (e.code == "Digit4") {
     changeLayer(3);
   }
+  if (e.shiftKey && e.code == "BracketRight") {
+    if (currentcolorValue.a == 255) return;
+    changeColorV(
+      currentcolorValue.r,
+      currentcolorValue.g,
+      currentcolorValue.b,
+      ++currentcolorValue.a
+    );
+    return;
+  }
+
+  if (e.shiftKey && e.code == "BracketLeft") {
+    if (currentcolorValue.a == 0) return;
+    changeColorV(
+      currentcolorValue.r,
+      currentcolorValue.g,
+      currentcolorValue.b,
+      --currentcolorValue.a
+    );
+    return;
+  }
+
   if (e.code == "BracketRight") {
     const element = document.getElementById("linewidthRange");
+    if (currentLineWidth == 100) {
+      return;
+    }
     element.value = ++currentLineWidth;
     document.getElementById("currentlinespan").innerText = currentLineWidth;
+    return;
   }
+
   if (e.code == "BracketLeft") {
+    if (currentLineWidth == 1) {
+      return;
+    }
     const element = document.getElementById("linewidthRange");
     element.value = --currentLineWidth;
     document.getElementById("currentlinespan").innerText = currentLineWidth;
+    return;
   }
 });
 
