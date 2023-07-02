@@ -508,6 +508,7 @@ for (let element of layers) {
     drawing = !true;
   };
   element.canvas.onclick = (e) => {
+    if (e.which == 3) return;
     if (selectedTool == toolKey.eyeTool) {
       const color = getColor(currentContext, { x: e.offsetX, y: e.offsetY });
       changeColorV(color[0], color[1], color[2], color[3]);
@@ -541,6 +542,7 @@ for (let element of layers) {
     }
   };
   element.canvas.onmousedown = (e) => {
+    if (e.which == 3) return;
     if (selectedTool == toolKey.fillTool) return;
     drawing = true;
     if (selectedTool == toolKey.eyeTool && drawing) {
@@ -570,6 +572,7 @@ for (let element of layers) {
 }
 
 window.onmouseup = () => {
+  // if (e.which && e.which == 2) return;
   if (!drawing) return;
   drawing = false;
   if (selectedTool == toolKey.shapeTool || selectedTool == toolKey.brush)
@@ -665,10 +668,58 @@ const resolveShape = () => {
   currentContext.stroke(currentPath);
 };
 
-const blend = (p1, p2, p3) => {
-  p3[3] = p1[3] + p2[3](1 - p1[3]);
-  for (let i = 0; i < 3; i++) {
-    p3[i] = p1[i] * p1[3] + p2[i] * p2[3] * (1 - p1[3]);
-    p3[i] = p3[i] / p3[3];
+const createNewImage = () => {
+  let imdata = [];
+  for (let e = 0; e < layers.length - 1; e++) {
+    // if (e == 2) break;
+    if (imdata.length == 0) {
+      imdata = layers[e].getImageData(
+        0,
+        0,
+        layers[e].canvas.width,
+        layers[e].canvas.height
+      ).data;
+      continue;
+    } else {
+      const data = layers[e].getImageData(
+        0,
+        0,
+        layers[e].canvas.width,
+        layers[e].canvas.height
+      ).data;
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha =
+          255 *
+          (data[i + 3] / 255 + (imdata[i + 3] / 255) * (1 - data[i + 3] / 255));
+        for (let j = 0; j < 3; j++) {
+          imdata[i + j] =
+            data[i + j] * (data[i + 3] / 255) +
+            ((imdata[i + j] * imdata[i + 3]) / 255) * (1 - data[i + 3] / 255);
+
+          data[i + j] = data[i + j] / (alpha / 255);
+        }
+        imdata[i + 3] = alpha;
+      }
+    }
   }
+  return imdata;
+
+  // visual.putImageData(new ImageData(imdata, 800), 0, 0);
 };
+
+document.getElementById("exportbtn").addEventListener("click", () => {
+  visual.putImageData(
+    new ImageData(createNewImage(), visual.canvas.width),
+    0,
+    0
+  );
+  // const file = new Blob([image], { type: "image/png" });
+  const url = visual.canvas.toDataURL();
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "coolByWetchie.png";
+  a.click();
+  URL.revokeObjectURL(url);
+  a.remove();
+  clear(visual);
+});
